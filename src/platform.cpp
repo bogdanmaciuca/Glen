@@ -1,5 +1,6 @@
 #include "platform.h"
-#include <cstdio>
+#include <vector>
+#include <functional>
 #include "SDL3/SDL.h"
 #include "../vendor/imgui/imgui.h"
 #include "../vendor/imgui/imgui_impl_sdl3.h"
@@ -10,17 +11,24 @@ namespace platform {
         SDL_Window*   m_window;
         SDL_GLContext m_gl_context;
         const bool*   m_keys;
-        float         m_mouse_x;
-        float         m_mouse_y;
 
-        bool m_should_quit = false;
+        std::vector<std::function<void(i32, i32)>> m_resize_callbacks;
+
+        bool  m_should_quit = false;
+        float m_mouse_x;
+        float m_mouse_y;
+        i32   m_win_width;
+        i32   m_win_height;
     }
 
     bool Initialize() {
         if (SDL_Init(SDL_INIT_VIDEO) == false)
             return false;
 
-        m_window = SDL_CreateWindow("Glen", 1024, 768, SDL_WINDOW_OPENGL);
+        m_window = SDL_CreateWindow(
+            "Glen", DEFAULT_WIN_WIDTH, DEFAULT_WIN_HEIGHT,
+            SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+        );
         if (m_window == nullptr)
             return false;
 
@@ -62,6 +70,12 @@ namespace platform {
                 case SDL_EVENT_QUIT:
                     m_should_quit = true;
                     break;
+                case SDL_EVENT_WINDOW_RESIZED:
+                    SDL_GetWindowSize(m_window, &m_win_width, &m_win_height);
+                    for (auto callback : m_resize_callbacks) {
+                        callback(m_win_width, m_win_height);
+                    }
+                    break;
             }
             ImGui_ImplSDL3_ProcessEvent(&evt);
         }
@@ -72,6 +86,10 @@ namespace platform {
         SDL_GL_SwapWindow(m_window);
     }
 
+    void AddResizeCallback(const std::function<void(i32, i32)>& callback) {
+        m_resize_callbacks.push_back(callback);
+    }
+
     bool KeyIsDown(GlenKey key) {
         return m_keys[key];
     }
@@ -79,9 +97,14 @@ namespace platform {
     float GetMouseX() {
         return m_mouse_x;
     }
-
     float GetMouseY() {
         return m_mouse_y;
+    }
+
+    std::tuple<i32, i32> GetWinSize() {
+        i32 w, h;
+        SDL_GetWindowSize(m_window, &w, &h);
+        return std::tuple(w, h);
     }
 
     bool ShouldQuit() {

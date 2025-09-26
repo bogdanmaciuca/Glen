@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include "log.h"
 
 // TODO: maybe use fstream for this?
 std::vector<u8> ReadFile(const char* filepath) {
@@ -19,6 +20,7 @@ std::vector<u8> ReadFile(const char* filepath) {
     std::vector<u8> result(len + 1);
     fread(result.data(), sizeof(u8), len + 1, file);
 
+    fclose(file);
     return result;
 }
 
@@ -33,6 +35,7 @@ std::string ReadFileAsString(const char* filepath) {
     std::string result(len + 1, 0);
     fread(result.data(), sizeof(u8), len + 1, file);
 
+    fclose(file);
     return result;
 }
 
@@ -57,7 +60,7 @@ struct std::hash<ObjIndex> {
     }
 };
 // TODO: handle errors
-//       maybe use std::expected
+//       use std::expected
 //       maybe move to obj_parser.h or smth
 bool LoadMesh(const char* filepath, Mesh* mesh) {
     // For all faces' vertices, we will either:
@@ -73,6 +76,9 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
 
     const auto AddVertex = [&](const ObjIndex& vertex) {
         if (vertices_map.count(vertex) == 0) {
+            //Log("positions.size() = {}, vertex.pos_idx = {}", positions.size(), vertex.pos_idx);
+            //Log("normals.size() = {}, vertex.normal_idx = {}", normals.size(), vertex.normal_idx);
+            //Log("uvs.size() = {}, vertex.uv_idx = {}", uvs.size(), vertex.uv_idx);
             mesh->vertices.push_back(Vertex{
                 positions[vertex.pos_idx],
                 normals[vertex.normal_idx],
@@ -116,9 +122,9 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
                 while (std::getline(ss, token, '/')) {
                     if (!token.empty()) {
                         int value = std::stoi(token);
-                        if      (i == 0) fv.pos_idx    = value;
-                        else if (i == 1) fv.normal_idx = value;
-                        else if (i == 2) fv.uv_idx     = value;
+                        if      (i == 0) fv.pos_idx    = value - 1;
+                        else if (i == 1) fv.uv_idx     = value - 1;
+                        else if (i == 2) fv.normal_idx = value - 1;
                     }
                     i++;
                 }

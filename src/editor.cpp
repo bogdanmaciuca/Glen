@@ -143,16 +143,17 @@ namespace editor {
         else if (platform::KeyIsDown(GLEN_KEY_D)) m_camera.MoveRight(m_delta_time);
         m_camera.ProcessMouse(delta_mouse_x, delta_mouse_y);
 
-        renderer::SetViewMatrix(m_camera.GetViewMatrix());
+        renderer::SetCamera(m_camera.GetPos(), m_camera.GetViewMatrix());
         renderer::RenderFrame();
 
         ImGui::Begin("View");
         ImVec2 window_pos = ImGui::GetCursorScreenPos();
-        const float window_width = ImGui::GetContentRegionAvail().x;
-        const float window_height = ImGui::GetContentRegionAvail().y;
+        const float view_width = ImGui::GetContentRegionAvail().x;
+        const float view_height = ImGui::GetContentRegionAvail().y;
+        renderer::EnsureResized(view_width, view_height);
         ImGui::GetWindowDrawList()->AddImage(
             (ImTextureRef)renderer::GetOutputTexture(), window_pos,
-            ImVec2(window_pos.x + window_width, window_pos.y + window_height),
+            ImVec2(window_pos.x + view_width, window_pos.y + view_height),
             ImVec2(0, 1), ImVec2(1, 0)
         );
         ImGui::End();

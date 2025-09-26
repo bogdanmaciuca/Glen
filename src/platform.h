@@ -1,9 +1,14 @@
 #pragma once
+#include <functional>
+#include <tuple>
 #include "int.h"
 #include "SDL3/SDL_scancode.h"
 
 struct SDL_Window;
 struct SDL_GLContextState;
+
+constexpr i32 DEFAULT_WIN_WIDTH  = 1000.0f;
+constexpr i32 DEFAULT_WIN_HEIGHT = 1000.0f;
 
 enum GlenKey {
     GLEN_KEY_A         = SDL_SCANCODE_A,
@@ -56,10 +61,12 @@ namespace platform {
     void Release();
     void HandleEvents();
     void SwapBuffers();
+    void AddResizeCallback(const std::function<void(i32, i32)>& callback);
 
     bool KeyIsDown(GlenKey key);
     float GetMouseX();
     float GetMouseY();
+    std::tuple<i32, i32> GetWinSize();
 
     bool ShouldQuit();
     SDL_Window* GetWindow();
