@@ -39,12 +39,13 @@ if reconfigure == True or len(listdir(build_dir)) == 0:
 
 # Build
 print(f'{FILE}: Building...')
-run(['cmake', '--build', build_dir])
+return_code = run(['cmake', '--build', build_dir]).returncode
 
-# Run
-print(f'{FILE}: Running...')
-try:
-    run([build_dir + '/' + EXE_NAME])
-except KeyboardInterrupt:
-    print(f'{FILE}: Program was interrupted')
+if return_code == 0:
+    # Run
+    print(f'{FILE}: Running...')
+    try:
+        run([build_dir + '/' + EXE_NAME])
+    except KeyboardInterrupt:
+        print(f'{FILE}: Program was interrupted')
 
