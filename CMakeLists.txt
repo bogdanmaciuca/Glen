@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB SRCS
     src/*.cpp
     vendor/imgui/*.cpp
+    vendor/stb/*.cpp
 )
 
 # Third party libraries through git submodules

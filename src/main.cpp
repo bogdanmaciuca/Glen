@@ -1,12 +1,9 @@
-/*
-* TODO:
-* - assertion fail in LoadMesh
-*/
-
+#include <filesystem>
 #include "log.h"
 #include "platform.h"
 #include "editor.h"
 #include "renderer.h"
+#include "mesh.h"
 
 int main() {
     platform::Initialize();

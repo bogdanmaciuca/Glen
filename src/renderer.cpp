@@ -28,6 +28,7 @@ namespace renderer {
         Vec3  m_cam_pos;
 
         Object m_obj;
+        GLuint m_texture;
         Shader m_shader;
     }
 
@@ -42,19 +43,30 @@ namespace renderer {
 
         Mesh mesh;
         assert(LoadMesh("tests/res/SuzanneTri.obj", &mesh));
-        //mesh = {
-        //    .vertices = {
-        //        { Vec3( 0.0f,  1.0f, 0.0f) },
-        //        { Vec3(-1.0f, -1.0f, 1.0f) },
-        //        { Vec3( 1.0f, -1.0f, 0.0f) },
-        //    },
-        //    .indices = { 0, 1, 2 }
-        //};
+        Log("finished!");
         m_obj.Initialize();
         m_obj.UpdateGeometry(mesh);
 
+        Log("w = {}, h = {}", mesh.textures[TEX_DIFFUSE].width, mesh.textures[TEX_DIFFUSE].height);
+
         m_proj_matrix = glm::perspective(
             glm::radians(m_FOV), (float)DEFAULT_WIN_WIDTH / (float)DEFAULT_WIN_HEIGHT, m_z_near, m_z_far);
+
+        glGenTextures(1, &m_texture);
+        glBindTexture(GL_TEXTURE_2D, m_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA,
+            mesh.textures[TEX_DIFFUSE].width,
+            mesh.textures[TEX_DIFFUSE].height,
+            0, GL_RGBA, GL_UNSIGNED_BYTE, mesh.textures[TEX_DIFFUSE].pixels
+        );
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        Log("error = {}", glGetError());
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);  
@@ -76,6 +88,9 @@ namespace renderer {
         m_shader.SetMat4("u_view", m_view_matrix);
         m_shader.SetMat4("u_proj", m_proj_matrix);
         m_shader.SetVec3("u_cam_pos", m_cam_pos);
+        m_shader.SetInt("u_sampler", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_texture);
         Object::SetAttributes();
         m_obj.Draw();
 

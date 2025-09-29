@@ -1,3 +1,7 @@
+// TODO:
+// - GetPath()
+// - use GetPath() instead of std::filesystem
+// - 
 #include "resource.h"
 #include <cassert>
 #include <cstdio>
@@ -6,6 +10,8 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
+#include "../vendor/stb/stb_image.h"
 #include "log.h"
 
 // TODO: maybe use fstream for this?
@@ -59,15 +65,21 @@ struct std::hash<ObjIndex> {
         ^ (hash<u32>()(k.uv_idx) << 1);
     }
 };
-// TODO: handle errors
-//       use std::expected
-//       maybe move to obj_parser.h or smth
+
+std::string GetRelativePath(std::string filepath) {
+    std::filesystem::path p(filepath);
+    return p.remove_filename().string();
+}
+
+bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures);
 bool LoadMesh(const char* filepath, Mesh* mesh) {
     // For all faces' vertices, we will either:
     //   - append a vertex to the mesh's vertices vector (if it's not in the
     //   unordered_map i.e. it's unique)
     //   - append the index of the vertex in the mesh's vertices vector to
     //   the mesh's indices vector if it already exists
+
+    bool status = true;
 
     std::unordered_map<ObjIndex, u32> vertices_map; // TODO: maybe use open addressing hashmap instead
     std::vector<Vec3> positions;
@@ -76,9 +88,6 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
 
     const auto AddVertex = [&](const ObjIndex& vertex) {
         if (vertices_map.count(vertex) == 0) {
-            //Log("positions.size() = {}, vertex.pos_idx = {}", positions.size(), vertex.pos_idx);
-            //Log("normals.size() = {}, vertex.normal_idx = {}", normals.size(), vertex.normal_idx);
-            //Log("uvs.size() = {}, vertex.uv_idx = {}", uvs.size(), vertex.uv_idx);
             mesh->vertices.push_back(Vertex{
                 positions[vertex.pos_idx],
                 normals[vertex.normal_idx],
@@ -93,6 +102,9 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
     };
 
     std::ifstream file(filepath);
+    if (!file.is_open())
+        return false;
+
     std::string keyword;
     while (file >> keyword) {
         if (keyword == "v") {
@@ -134,15 +146,63 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
                 AddVertex(ParseFaceVertex());
         }
         else if (keyword == "mtllib") {
-            std::string mtl_path;
-            file >> mtl_path;
-            // TODO: read mtl file (maybe)
+            std::string mtl_filepath;
+            file >> mtl_filepath;
+
+            if(!ParseMtl(GetRelativePath(filepath) + mtl_filepath, nullptr, &mesh->textures)) {
+                Log("Could not load material file.");
+                status = false;
+            }
         }
         else if (keyword == "usemtl") {
+            Log("Encountered usemtl, will ignore as it is not implemented yet");
             // TODO:
+        }
+    }
+
+    return status;
+}
+
+bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures) {
+    Log("{}", filepath);
+    std::ifstream file(filepath);
+    if (!file.is_open())
+        return false;
+
+    bool encountered_newmtl = false;
+    std::string keyword;
+    while (file >> keyword) {
+        if (keyword == "newmtl") {
+            if (encountered_newmtl == true) {
+                Log("Only one material is allowed at the moment. Parsing stopped.");
+                return true;
+            }
+            encountered_newmtl = true;
+            std::string material_name;
+            file >> material_name;
+    
+            if (material != nullptr)
+                *material = material_name;
+        }
+        else if (keyword == "map_Kd") {
+            // TODO:
+            // - make a lambda for loading a texture at a certain index in `textures`
+    
+            std::string texture_path;
+            file >> texture_path;
+            (*textures)[TEX_DIFFUSE].pixels = stbi_load(
+                (GetRelativePath(filepath) + texture_path).c_str(),
+                &(*textures)[TEX_DIFFUSE].width,
+                &(*textures)[TEX_DIFFUSE].height,
+                nullptr,
+                STBI_rgb_alpha
+            );
+            if ((*textures)[TEX_DIFFUSE].pixels == nullptr) {
+                Log("Could not open texture file: {}", texture_path);
+                return false;
+            } 
         }
     }
 
     return true;
 }
-
