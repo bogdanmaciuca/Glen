@@ -72,7 +72,7 @@ std::string GetRelativePath(std::string filepath) {
 }
 
 bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures);
-bool LoadMesh(const char* filepath, Mesh* mesh) {
+bool LoadMeshOBJ(const char* filepath, Mesh* mesh) {
     // For all faces' vertices, we will either:
     //   - append a vertex to the mesh's vertices vector (if it's not in the
     //   unordered_map i.e. it's unique)
@@ -164,10 +164,25 @@ bool LoadMesh(const char* filepath, Mesh* mesh) {
 }
 
 bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures) {
-    Log("{}", filepath);
     std::ifstream file(filepath);
     if (!file.is_open())
         return false;
+
+    const auto LoadTexture =
+        [&filepath, textures](i32 tex_idx, const std::string& texture_path) -> bool {
+            (*textures)[tex_idx].pixels = stbi_load(
+                (GetRelativePath(filepath) + texture_path).c_str(),
+                &(*textures)[tex_idx].width,
+                &(*textures)[tex_idx].height,
+                nullptr,
+                STBI_rgb_alpha
+            );
+            if ((*textures)[tex_idx].pixels == nullptr) {
+                Log("Could not open texture file: {}", texture_path);
+                return false;
+            }
+            return true;
+        };
 
     bool encountered_newmtl = false;
     std::string keyword;
@@ -185,24 +200,70 @@ bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* 
                 *material = material_name;
         }
         else if (keyword == "map_Kd") {
-            // TODO:
-            // - make a lambda for loading a texture at a certain index in `textures`
-    
             std::string texture_path;
             file >> texture_path;
-            (*textures)[TEX_DIFFUSE].pixels = stbi_load(
-                (GetRelativePath(filepath) + texture_path).c_str(),
-                &(*textures)[TEX_DIFFUSE].width,
-                &(*textures)[TEX_DIFFUSE].height,
-                nullptr,
-                STBI_rgb_alpha
-            );
-            if ((*textures)[TEX_DIFFUSE].pixels == nullptr) {
-                Log("Could not open texture file: {}", texture_path);
+            if (!LoadTexture(TEX_DIFFUSE, texture_path))
                 return false;
-            } 
+        }
+        else if (keyword == "norm") {
+            std::string texture_path;
+            file >> texture_path;
+            if (!LoadTexture(TEX_NORMAL, texture_path))
+                return false;
         }
     }
 
     return true;
+}
+
+// Load: display line on which the error occured with a nice error message
+bool LoadMeshNFG(const char* filepath, const char* texture_filepath, Mesh* mesh) {
+    FILE* file = fopen(filepath, "r");
+    if (file == nullptr)
+        return false;
+
+#define SCAN(fmt, narg, ...) \
+    { \
+    if (fscanf(file, fmt, __VA_ARGS__) != narg) \
+        goto fail_cleanup; \
+    }
+
+    i32 vertices_num;
+    SCAN("NrVertices: %d", 1, &vertices_num);
+    for (i32 i = 0; i < vertices_num; i++) {
+        i32 idx;
+        Vertex vtx;
+        SCAN(
+            " %d. pos:[%f, %f, %f]; norm:[%f, %f, %f]; binorm:[%f, %f, %f]; tgt:[%f, %f, %f]; uv:[%f, %f]; ", 15,
+            &idx,
+            &vtx.position.x, &vtx.position.y, &vtx.position.z,
+            &vtx.normal.x, &vtx.normal.y, &vtx.normal.z,
+            &vtx.bitangent.x, &vtx.bitangent.y, &vtx.bitangent.z,
+            &vtx.tangent.x, &vtx.tangent.y, &vtx.tangent.z,
+            &vtx.uv.x, &vtx.uv.y
+        );
+        if (idx != i)
+            goto fail_cleanup;
+        mesh->vertices.push_back(vtx);
+    }
+
+    i32 indices_num;
+    SCAN("NrIndices: %d", 1, &indices_num);
+    for (i32 i = 0; i < indices_num / 3; i++) {
+        i32 idx;
+        i32 i1, i2, i3;
+        Log("{}", i);
+        SCAN(" %d. %d, %d, %d", 4, &idx, &i1, &i2, &i3);
+        if (idx != i)
+            goto fail_cleanup;
+        mesh->indices.push_back(i1);
+        mesh->indices.push_back(i2);
+        mesh->indices.push_back(i3);
+    }
+
+#undef SCAN
+    return true;
+fail_cleanup:
+    fclose(file);
+    return false;
 }

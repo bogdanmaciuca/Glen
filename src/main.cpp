@@ -1,9 +1,12 @@
-#include <filesystem>
+// TODO:
+// - compute TNB matrix
+// - compute inverse transpose shit stuff on cpu
+// - normal maps babyyyyyy
+#include <cassert>
 #include "log.h"
 #include "platform.h"
 #include "editor.h"
 #include "renderer.h"
-#include "mesh.h"
 
 int main() {
     platform::Initialize();

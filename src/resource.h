@@ -8,5 +8,7 @@ std::vector<u8> ReadFile(const char* filepath);
 
 std::string ReadFileAsString(const char* filepath);
 
-bool LoadMesh(const char* filepath, Mesh* mesh);
+bool LoadMeshOBJ(const char* filepath, Mesh* mesh);
+
+bool LoadMeshNFG(const char* filepath, const char* texture_filepath, Mesh* mesh);
 

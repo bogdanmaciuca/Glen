@@ -1,6 +1,7 @@
 attribute vec3 a_position;
 attribute vec3 a_normal;
 attribute vec2 a_uv;
+attribute vec3 a_tangent;
 attribute vec3 a_bitangent;
 
 varying vec2 o_tex_coord;
