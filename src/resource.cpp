@@ -71,7 +71,7 @@ std::string GetRelativePath(std::string filepath) {
     return p.remove_filename().string();
 }
 
-bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures);
+bool ParseMtl(const std::string& filepath, std::string* material, TextureDataArray* textures);
 bool LoadMeshOBJ(const char* filepath, Mesh* mesh) {
     // For all faces' vertices, we will either:
     //   - append a vertex to the mesh's vertices vector (if it's not in the
@@ -163,11 +163,12 @@ bool LoadMeshOBJ(const char* filepath, Mesh* mesh) {
     return status;
 }
 
-bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* textures) {
+bool ParseMtl(const std::string& filepath, std::string* material, TextureDataArray* textures) {
     std::ifstream file(filepath);
     if (!file.is_open())
         return false;
 
+    // TODO: remove this lambda if it's only used in one place (as it is right now)
     const auto LoadTexture =
         [&filepath, textures](i32 tex_idx, const std::string& texture_path) -> bool {
             (*textures)[tex_idx].pixels = stbi_load(
@@ -217,7 +218,7 @@ bool ParseMtl(const std::string& filepath, std::string* material, TextureArray* 
 }
 
 // Load: display line on which the error occured with a nice error message
-bool LoadMeshNFG(const char* filepath, const char* texture_filepath, Mesh* mesh) {
+bool LoadMeshNFG(const char* filepath, const TexturePathArray& texture_paths, Mesh* mesh) {
     FILE* file = fopen(filepath, "r");
     if (file == nullptr)
         return false;
@@ -252,13 +253,28 @@ bool LoadMeshNFG(const char* filepath, const char* texture_filepath, Mesh* mesh)
     for (i32 i = 0; i < indices_num / 3; i++) {
         i32 idx;
         i32 i1, i2, i3;
-        Log("{}", i);
         SCAN(" %d. %d, %d, %d", 4, &idx, &i1, &i2, &i3);
         if (idx != i)
             goto fail_cleanup;
         mesh->indices.push_back(i1);
         mesh->indices.push_back(i2);
         mesh->indices.push_back(i3);
+    }
+
+    for (i32 i = 0; i < texture_paths.size(); i++) {
+        if (!texture_paths[i].empty()) {
+            mesh->textures[i].pixels = stbi_load(
+                texture_paths[i].c_str(),
+                &mesh->textures[i].width,
+                &mesh->textures[i].height,
+                nullptr,
+                STBI_rgb_alpha
+            );
+            if (mesh->textures[i].pixels == nullptr) {
+                Log("Could not open texture file: {}", texture_paths[i]);
+                return false;
+            }
+        }
     }
 
 #undef SCAN

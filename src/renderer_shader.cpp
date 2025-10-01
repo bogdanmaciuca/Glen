@@ -20,6 +20,14 @@ void Shader::Initialize(const std::string& vert_source, const std::string& frag_
     glAttachShader(m_id, frag_shader);
     glLinkProgram(m_id);
 
+    std::array<char, 512> info_log;
+    GLint success;
+    glGetProgramiv(m_id, GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(m_id, 512, NULL, info_log.data());
+        Log("Error while linking shader {}: {}", m_id, info_log.data());
+    }
+
     glDetachShader(m_id, vert_shader);
     glDeleteShader(vert_shader);
     glDetachShader(m_id, frag_shader);
@@ -37,6 +45,10 @@ void Shader::SetInt(const std::string& name,int value) {
 
 void Shader::SetVec3(const std::string& name, const Vec3& value) {
     glUniform3fv(glGetUniformLocation(m_id, name.c_str()), 1, &value[0]); 
+}
+
+void Shader::SetMat3(const std::string& name, const Mat3& value) {
+    glUniformMatrix3fv(glGetUniformLocation(m_id, name.c_str()), 1, GL_FALSE, &value[0][0]); 
 }
 
 void Shader::SetMat4(const std::string& name,const Mat4& value) {

@@ -49,7 +49,9 @@ void Object::UpdateGeometry(const Mesh& mesh) {
     }
 }
 
-void Object::Draw() {
+void Object::Draw(Shader& shader) {
+    shader.SetMat4("u_model", m_model);
+    shader.SetMat3("u_normal_matrix", Mat3(glm::transpose(glm::inverse(m_model))));
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
     for (u32 i = 0; i < m_textures.size(); i++) {

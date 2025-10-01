@@ -10,5 +10,5 @@ std::string ReadFileAsString(const char* filepath);
 
 bool LoadMeshOBJ(const char* filepath, Mesh* mesh);
 
-bool LoadMeshNFG(const char* filepath, const char* texture_filepath, Mesh* mesh);
+bool LoadMeshNFG(const char* filepath, const TexturePathArray& texture_paths, Mesh* mesh);
 

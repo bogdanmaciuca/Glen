@@ -1,10 +1,13 @@
 precision mediump float;
 
-varying vec2 o_tex_coord;
+varying vec2 o_uv;
 varying vec3 o_frag_pos;
 varying vec3 o_normal;
+varying mat3 o_tbn;
+
 uniform vec3 u_cam_pos;
-uniform sampler2D u_sampler;
+uniform sampler2D u_diffuse;
+uniform sampler2D u_normal;
 
 uniform vec3 u_light_color;
 uniform vec3 u_color;
@@ -24,14 +27,21 @@ void main() {
     if (u_use_diffuse == 0)
         color = u_color;
     else
-        color = texture2D(u_sampler, o_tex_coord).xyz;
+        color = texture2D(u_diffuse, o_uv).xyz;
 
-    // Normal map
-    // ...
+    // Normals
+    if (u_use_normal == 0) {
+        normal = normalize(o_normal);
+    }
+    else {
+        normal = texture2D(u_normal, o_uv).rgb;
+        normal = normal * 2.0 - 1.0;   
+        normal = o_tbn * normal; 
+    }
 
     vec3 light_dir = vec3(1);
     
-    float shading = max(0.0, dot(normalize(o_normal), normalize(light_dir)));
+    float shading = max(0.0, dot(normalize(normal), normalize(light_dir)));
     gl_FragColor = vec4(color * shading, 1.0);
 }
 

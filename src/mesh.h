@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
+#include <string>
 #include <array>
+#include <vector>
 #include "int.h"
 #include "mathdef.h"
 
@@ -35,11 +36,12 @@ struct TextureData {
     size_t ByteSize();
 };
 
-using TextureArray = std::array<TextureData, TEX_COUNT>;
+using TexturePathArray = std::array<std::string, TEX_COUNT>;
+using TextureDataArray = std::array<TextureData, TEX_COUNT>;
 
 struct Mesh {
     std::vector<Vertex> vertices;
     std::vector<Index>  indices;
-    TextureArray        textures;
+    TextureDataArray    textures;
 };
 

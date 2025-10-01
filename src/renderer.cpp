@@ -1,6 +1,3 @@
-// TODO:
-// - get window size from editor
-
 #include "renderer.h"
 #include "SDL3/SDL_opengles2.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -42,22 +39,26 @@ namespace renderer {
         m_shader.Use();
         m_shader.SetInt("u_diffuse", TEX_DIFFUSE);
         m_shader.SetInt("u_normal", TEX_NORMAL);
-        m_shader.SetInt("u_use_diffuse", 0);
-        m_shader.SetInt("u_use_normal", 0);
-        m_shader.SetVec3("u_color", Vec3(0.5f, 0.4f, 0.8f));
+        m_shader.SetInt("u_use_diffuse", 1);
+        m_shader.SetInt("u_use_normal", 1);
+        m_shader.SetVec3("u_color", Vec3(0.7f, 0.7f, 0.9f));
 
         Mesh mesh;
-        //assert(LoadMesh("tests/res/suzanne/suzanne.obj", &mesh));
+        //assert(LoadMeshOBJ("tests/res/suzanne/suzanne.obj", &mesh));
         //assert(LoadMeshOBJ("tests/res/stone/stone.obj", &mesh));
-        assert(LoadMeshNFG("tests/res/water/water.nfg", nullptr, &mesh));
+        TexturePathArray textures = { "", "tests/res/water/normal.tga" };
+        assert(LoadMeshNFG("tests/res/water/water.nfg", textures, &mesh));
         m_obj.Initialize();
         m_obj.UpdateGeometry(mesh);
 
         m_proj_matrix = glm::perspective(
             glm::radians(m_FOV), (float)DEFAULT_WIN_WIDTH / (float)DEFAULT_WIN_HEIGHT, m_z_near, m_z_far);
+        m_shader.SetMat4("u_proj", m_proj_matrix);
 
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);  
+
+        glDisable(GL_CULL_FACE);
 
         return true;
     }
@@ -72,11 +73,10 @@ namespace renderer {
         glClearColor(0.6f, 0.2f, 0.4f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_shader.Use();
-        m_shader.SetMat4("u_model", Mat4(1));
         m_shader.SetMat4("u_view", m_view_matrix);
         m_shader.SetVec3("u_cam_pos", m_cam_pos);
         Object::SetAttributes();
-        m_obj.Draw();
+        m_obj.Draw(m_shader);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }

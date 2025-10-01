@@ -13,6 +13,7 @@ public:
     void Use();
     void SetInt(const std::string& name,int value);
     void SetVec3(const std::string& name, const Vec3& value);
+    void SetMat3(const std::string& name, const Mat3& value);
     void SetMat4(const std::string& name, const Mat4& value);
 private:
     u32 m_id = 0;
